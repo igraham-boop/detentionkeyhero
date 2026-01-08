@@ -1,0 +1,988 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Detention: Tommy vs. Mr. Graham (Key Hero)</title>
+  <style>
+    :root{
+      --bg:#0b0f1a;
+      --panel:#121a2b;
+      --ink:#eaf0ff;
+      --muted:#a8b3d6;
+      --good:#3af59a;
+      --bad:#ff4d6d;
+      --lane:#2a375a;
+      --line:#eaf0ff;
+      --accent:#7aa7ff;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:radial-gradient(1200px 700px at 50% 20%, #162044 0%, var(--bg) 55%, #070a12 100%);
+      color:var(--ink);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+    }
+    .wrap{
+      width:min(1100px, 100%);
+      display:grid;
+      grid-template-columns: 1fr 340px;
+      gap:14px;
+    }
+    @media (max-width: 980px){
+      .wrap{grid-template-columns: 1fr; }
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:16px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+      overflow:hidden;
+    }
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:12px 14px;
+      border-bottom:1px solid rgba(255,255,255,0.10);
+      background:rgba(0,0,0,0.12);
+    }
+    .title{display:flex; gap:10px; align-items:baseline;}
+    .title h1{
+      font-size:14px; letter-spacing:0.4px; margin:0;
+      text-transform:uppercase; color:rgba(234,240,255,0.95);
+    }
+    .title .sub{font-size:12px; color:var(--muted);}
+    .stats{display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-variant-numeric: tabular-nums;}
+    .pill{
+      padding:6px 10px; border-radius:999px;
+      background:rgba(255,255,255,0.07);
+      border:1px solid rgba(255,255,255,0.12);
+      font-size:12px; color:rgba(234,240,255,0.92);
+      display:flex; gap:8px; align-items:center;
+    }
+    .pill b{color:#fff}
+    .good{color:var(--good)}
+    .bad{color:var(--bad)}
+    canvas{display:block; width:100%; height:auto; background:transparent;}
+    .side{padding:14px;}
+    .side h2{
+      margin:0 0 10px;
+      font-size:14px; letter-spacing:0.4px;
+      text-transform:uppercase; color:rgba(234,240,255,0.95);
+    }
+    .help{
+      font-size:13px; line-height:1.45;
+      color:rgba(234,240,255,0.85);
+      padding:12px;
+      background:rgba(0,0,0,0.14);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:14px;
+    }
+    .keys{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:8px;
+      margin:10px 0 12px;
+    }
+    .keycap{
+      text-align:center;
+      padding:10px 0;
+      border-radius:12px;
+      background:rgba(122,167,255,0.10);
+      border:1px solid rgba(122,167,255,0.28);
+      color:rgba(234,240,255,0.95);
+      font-weight:700;
+      letter-spacing:0.8px;
+      user-select:none;
+    }
+    .btnrow{display:flex; gap:10px; flex-wrap:wrap;}
+    button{
+      cursor:pointer;
+      border:none;
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:700;
+      background:linear-gradient(180deg, rgba(122,167,255,0.9), rgba(122,167,255,0.75));
+      color:#071028;
+      box-shadow: 0 12px 22px rgba(0,0,0,0.25);
+    }
+    button.secondary{
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.14);
+      color:rgba(234,240,255,0.95);
+      box-shadow:none;
+    }
+    .small{font-size:12px; color:var(--muted); margin-top:10px;}
+    .footer{margin-top:12px; font-size:12px; color:rgba(234,240,255,0.7);}
+    a{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="topbar">
+        <div class="title">
+          <h1>DETENTION: KEY HERO</h1>
+          <div class="sub">Tommy vs. Mr. Graham</div>
+        </div>
+        <div class="stats">
+          <div class="pill">Score <b id="score">0</b></div>
+          <div class="pill">Streak <b id="streak">0</b></div>
+          <div class="pill">Speed <b id="speed">1.00x</b></div>
+          <div class="pill">Best <b id="best">0</b></div>
+          <div class="pill" id="statusPill"><span class="good" id="status">Ready</span></div>
+        </div>
+      </div>
+      <canvas id="game" width="900" height="520"></canvas>
+    </div>
+
+    <div class="card side">
+      <h2>How to play</h2>
+      <div class="help">
+        Notes fall down the lanes. Press the matching key <b>right when the note reaches the hit line</b>.
+        <br><br>
+        ✔ Correct hit = <b>Tommy kicks Mr. Graham’s leg</b> and you score points.
+        <br>
+        ✖ Miss or wrong key = <b>game over</b>.
+        <br><br>
+        The game speeds up as you survive.
+      </div>
+
+      <div class="keys" aria-label="Key lanes">
+        <div class="keycap">A</div><div class="keycap">S</div><div class="keycap">D</div>
+        <div class="keycap">J</div><div class="keycap">K</div><div class="keycap">L</div>
+      </div>
+
+      <div class="btnrow">
+        <button id="startBtn">Start</button>
+        <button id="restartBtn" class="secondary">Restart</button>
+      </div>
+
+      <div class="small">Tip: click the game area once so your browser focuses it, then use the keyboard.</div>
+      <div class="footer">
+        Hosting tip: put this file in a GitHub repo as <code>index.html</code> and enable GitHub Pages.
+        Then embed the URL in Google Sites.
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  const scoreEl = document.getElementById("score");
+  const streakEl = document.getElementById("streak");
+  const speedEl = document.getElementById("speed");
+  const bestEl  = document.getElementById("best");
+  const statusEl = document.getElementById("status");
+  const statusPill = document.getElementById("statusPill");
+
+  const startBtn = document.getElementById("startBtn");
+  const restartBtn = document.getElementById("restartBtn");
+
+  const KEYS = ["A","S","D","J","K","L"];
+  const keyToLane = new Map(KEYS.map((k,i)=>[k,i]));
+
+  const W = canvas.width;
+  const H = canvas.height;
+
+  const lanes = 6;
+  const lanePad = 60;
+  const laneTop = 60;
+  const laneBottom = 420;
+  const laneH = laneBottom - laneTop;
+  const laneW = (W - lanePad*2) / lanes;
+
+  const hitY = laneBottom - 30;
+  const hitWindow = 26;
+
+  const baseSpawnInterval = 0.72;
+  const minSpawnInterval  = 0.34;
+  const baseFallSpeed     = 220;
+  const accelPerSecond    = 0.035;
+
+  const basePoints = 100;
+  const streakBonus = 8;
+
+  let running = false;
+  let gameOver = false;
+  let time = 0;
+  let lastTs = 0;
+
+  let spawnTimer = 0;
+  let speedMul = 1.0;
+
+  let score = 0;
+  let streak = 0;
+  let best = Number(localStorage.getItem("detention_best") || 0);
+  bestEl.textContent = best.toString();
+
+  let notes = [];
+  let noteId = 1;
+
+  // feedback flash on lanes
+  let flash = { t:0, kind:"good" };
+
+  // --- Character animation state ---
+  // Kick: progresses 0..1 with easing; we compute foot position from it.
+  let kick = { t: 0, active: false };
+  // Mr. Graham pain reaction (shake, recoil, face)
+  let pain = { t: 0 };      // decays to 0
+  // Impact spark
+  let impact = { t: 0, x: 0, y: 0 };
+  // Mug wobble
+  let mugWobble = { t: 0 }; // decays
+
+  function roundRect(x,y,w,h,r){
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.arcTo(x+w, y, x+w, y+h, rr);
+    ctx.arcTo(x+w, y+h, x, y+h, rr);
+    ctx.arcTo(x, y+h, x, y, rr);
+    ctx.arcTo(x, y, x+w, y, rr);
+    ctx.closePath();
+  }
+
+  function setStatus(text, kind){
+    statusEl.textContent = text;
+    statusEl.className = kind === "bad" ? "bad" : "good";
+    statusPill.style.borderColor = kind === "bad" ? "rgba(255,77,109,0.45)" : "rgba(58,245,154,0.45)";
+    statusPill.style.background = kind === "bad" ? "rgba(255,77,109,0.10)" : "rgba(58,245,154,0.10)";
+  }
+
+  function updateHUD(){
+    scoreEl.textContent = String(score);
+    streakEl.textContent = String(streak);
+    speedEl.textContent = `${speedMul.toFixed(2)}x`;
+  }
+
+  function reset(){
+    running = false;
+    gameOver = false;
+    time = 0;
+    lastTs = 0;
+    spawnTimer = 0;
+    speedMul = 1.0;
+
+    score = 0;
+    streak = 0;
+    notes = [];
+    noteId = 1;
+
+    flash.t = 0;
+    kick.active = false; kick.t = 0;
+    pain.t = 0;
+    impact.t = 0;
+    mugWobble.t = 0;
+
+    updateHUD();
+    setStatus("Ready", "good");
+    draw();
+  }
+
+  function start(){
+    if(running) return;
+    if(gameOver) reset();
+    running = true;
+    setStatus("Go!", "good");
+    requestAnimationFrame(loop);
+    canvas.focus?.();
+  }
+
+  function end(reason){
+    running = false;
+    gameOver = true;
+    flash.kind = "bad";
+    flash.t = 0.25;
+    streak = 0;
+    updateHUD();
+
+    if(score > best){
+      best = score;
+      localStorage.setItem("detention_best", String(best));
+      bestEl.textContent = String(best);
+      setStatus(`Game Over — New Best!`, "bad");
+    } else {
+      setStatus(`Game Over — ${reason}`, "bad");
+    }
+  }
+
+  function spawnNote(){
+    const lane = Math.floor(Math.random() * lanes);
+    const key = KEYS[lane];
+    notes.push({ id: noteId++, lane, key, y: laneTop - 30 });
+  }
+
+  function update(dt){
+    time += dt;
+
+    speedMul = 1.0 + time * accelPerSecond;
+    speedMul = Math.min(speedMul, 3.5);
+
+    const spawnInterval = clamp(baseSpawnInterval / speedMul, minSpawnInterval, baseSpawnInterval);
+    spawnTimer += dt;
+    while(spawnTimer >= spawnInterval){
+      spawnTimer -= spawnInterval;
+      spawnNote();
+    }
+
+    const fall = baseFallSpeed * speedMul;
+    for(const n of notes) n.y += fall * dt;
+
+    for(const n of notes){
+      if(n.y > hitY + hitWindow){
+        end("Miss");
+        break;
+      }
+    }
+
+    flash.t = Math.max(0, flash.t - dt);
+    if(kick.active){
+      kick.t += dt * 9.0; // faster kick for visible contact
+      if(kick.t >= 1){
+        kick.t = 0;
+        kick.active = false;
+      }
+    }
+    pain.t = Math.max(0, pain.t - dt * 2.8);
+    impact.t = Math.max(0, impact.t - dt * 6.0);
+    mugWobble.t = Math.max(0, mugWobble.t - dt * 3.2);
+  }
+
+  function onHit(contactX, contactY){
+    streak += 1;
+    score += basePoints + streak * streakBonus;
+
+    flash.kind = "good";
+    flash.t = 0.18;
+
+    // trigger kick + pain + impact + mug wobble
+    kick.active = true;
+    kick.t = 0;
+
+    pain.t = 1.0;
+    impact.t = 1.0;
+    impact.x = contactX;
+    impact.y = contactY;
+
+    mugWobble.t = 1.0;
+
+    updateHUD();
+  }
+
+  function onWrong(){
+    end("Wrong key");
+  }
+
+  function tryHit(key){
+    if(!running) return;
+
+    const lane = keyToLane.get(key);
+    if(lane === undefined) return;
+
+    let bestIdx = -1;
+    let bestDist = Infinity;
+    for(let i=0;i<notes.length;i++){
+      const n = notes[i];
+      if(n.lane !== lane) continue;
+      const d = Math.abs(n.y - hitY);
+      if(d < bestDist){
+        bestDist = d;
+        bestIdx = i;
+      }
+    }
+
+    if(bestIdx !== -1 && bestDist <= hitWindow){
+      // remove note
+      notes.splice(bestIdx, 1);
+
+      // compute actual contact point between foot and mr. graham's leg
+      const contact = computeKickContactPoint();
+      onHit(contact.x, contact.y);
+    } else {
+      onWrong();
+    }
+  }
+
+  // ---------- Drawing ----------
+  function drawBackground(){
+    ctx.clearRect(0,0,W,H);
+
+    // floor strip
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, laneBottom+10, W, H-(laneBottom+10));
+    ctx.restore();
+
+    // lane panel
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    roundRect(lanePad-10, laneTop-18, W-(lanePad-10)*2, laneH+55, 18);
+    ctx.fillStyle = "rgba(18,26,43,0.75)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    // lanes
+    for(let i=0;i<lanes;i++){
+      const x = lanePad + i*laneW;
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "rgba(42,55,90,0.35)";
+      ctx.fillRect(x, laneTop, laneW, laneH);
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, laneTop);
+      ctx.lineTo(x, laneBottom);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // hit line + circles
+    ctx.save();
+    ctx.strokeStyle = "rgba(234,240,255,0.85)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(lanePad, hitY);
+    ctx.lineTo(W-lanePad, hitY);
+    ctx.stroke();
+
+    for(let i=0;i<lanes;i++){
+      const cx = lanePad + i*laneW + laneW/2;
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.arc(cx, hitY, 10, 0, Math.PI*2);
+      ctx.strokeStyle = "rgba(234,240,255,0.22)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // key labels
+    ctx.save();
+    ctx.font = "700 14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for(let i=0;i<lanes;i++){
+      const cx = lanePad + i*laneW + laneW/2;
+      ctx.fillStyle = "rgba(234,240,255,0.88)";
+      ctx.fillText(KEYS[i], cx, laneBottom + 26);
+    }
+    ctx.restore();
+  }
+
+  function drawNote(note){
+    const cx = lanePad + note.lane*laneW + laneW/2;
+    const y = note.y;
+
+    ctx.save();
+    const w = laneW * 0.60;
+    const h = 26;
+    roundRect(cx - w/2, y - h/2, w, h, 10);
+    ctx.fillStyle = "rgba(122,167,255,0.22)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(122,167,255,0.55)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(234,240,255,0.95)";
+    ctx.font = "800 14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(note.key, cx, y+0.5);
+    ctx.restore();
+  }
+
+  function drawFlash(){
+    if(flash.t <= 0) return;
+    const a = clamp(flash.t / 0.18, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = 0.22 * a;
+    ctx.fillStyle = (flash.kind === "good") ? "#3af59a" : "#ff4d6d";
+    ctx.fillRect(lanePad-10, laneTop-18, W-(lanePad-10)*2, laneH+55);
+    ctx.restore();
+  }
+
+  function drawImpact(){
+    if(impact.t <= 0) return;
+
+    const a = impact.t; // 1->0
+    const r = 10 + (1-a)*20;
+
+    ctx.save();
+    ctx.globalAlpha = 0.75 * a;
+    ctx.lineWidth = 3;
+
+    // ring
+    ctx.strokeStyle = "rgba(255,255,255,0.95)";
+    ctx.beginPath();
+    ctx.arc(impact.x, impact.y, r, 0, Math.PI*2);
+    ctx.stroke();
+
+    // spark lines
+    ctx.strokeStyle = "rgba(255,180,80,0.95)";
+    for(let i=0;i<10;i++){
+      const ang = (i/10)*Math.PI*2;
+      const len = 8 + (1-a)*18;
+      ctx.beginPath();
+      ctx.moveTo(impact.x + Math.cos(ang)*(r*0.55), impact.y + Math.sin(ang)*(r*0.55));
+      ctx.lineTo(impact.x + Math.cos(ang)*(r*0.55 + len), impact.y + Math.sin(ang)*(r*0.55 + len));
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // ---------- Characters ----------
+  // We position them close enough so the kick clearly lands.
+  function computeKickContactPoint(){
+    // match the same anchors used in drawCharacters
+    const baseY = 92;
+    const leftX = 220;
+    const rightX = W - 270;
+
+    // Mr. Graham target leg point (shin area)
+    const mgLegX = rightX - 40;
+    const mgLegY = baseY + 86;
+
+    return { x: mgLegX, y: mgLegY };
+  }
+
+  function drawCharacters(dt){
+    // closer together so the kick obviously lands
+    const baseY = 92;
+    const leftX = 220;
+    const rightX = W - 270;
+
+    // pain shake/recoil
+    const shake = pain.t > 0 ? (Math.sin(time*60) * 4 * pain.t) : 0;
+    const recoil = pain.t > 0 ? (8 * pain.t) : 0;
+
+    const tommy = {
+      x: leftX,
+      y: baseY,
+      bob: Math.sin(time*3)*2,
+      kickP: kick.active ? easeInOut(kick.t) : 0
+    };
+
+    const mg = {
+      x: rightX + recoil + shake,
+      y: baseY,
+      bob: Math.sin(time*2.6 + 1.3)*2,
+      pain: pain.t
+    };
+
+    // spotlight behind characters
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.ellipse(W/2, 110, 360, 92, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    // Draw order: Tommy then Mr. Graham so impact feels like it hits him
+    drawTommy(tommy, mg);
+    drawMrGraham(mg);
+
+    // Title
+    ctx.save();
+    ctx.globalAlpha = 0.88;
+    ctx.font = "900 16px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(234,240,255,0.9)";
+    ctx.fillText("TOMMY  vs  MR. GRAHAM", W/2, 30);
+    ctx.restore();
+  }
+
+  function easeInOut(t){
+    // smoothstep-like
+    t = clamp(t, 0, 1);
+    return t*t*(3 - 2*t);
+  }
+
+  function drawTommy(t, mg){
+    const x = t.x, y = t.y + t.bob;
+
+    const headR = 18;
+    const bodyW = 34, bodyH = 44;
+
+    // Where Tommy's kicking leg starts
+    const hipX = x + 8;
+    const hipY = y + 58;
+
+    // Target is Mr. Graham's shin (so the foot reaches his leg)
+    const target = computeKickContactPoint();
+
+    // Kick curve: foot goes toward target when kickP near 1
+    const kickP = t.kickP;
+    const footX = hipX + (target.x - hipX) * kickP;
+    const footY = hipY + (target.y - hipY) * kickP;
+
+    // Non-kicking leg
+    const standX = x - 8;
+    const standY = y + 82;
+
+    // shadow
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.ellipse(x, y+98, 36, 10, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // legs
+    ctx.strokeStyle = "rgba(234,240,255,0.85)";
+    ctx.lineWidth = 6;
+    ctx.lineCap = "round";
+
+    // standing leg
+    ctx.beginPath();
+    ctx.moveTo(x-6, y+58);
+    ctx.lineTo(standX, standY);
+    ctx.stroke();
+
+    // kicking leg (to foot)
+    ctx.beginPath();
+    ctx.moveTo(hipX, hipY);
+    ctx.lineTo(footX, footY);
+    ctx.stroke();
+
+    // shoe (brighter so you can see it land)
+    ctx.lineWidth = 9;
+    ctx.strokeStyle = "rgba(122,167,255,0.95)";
+    ctx.beginPath();
+    ctx.moveTo(footX - 4, footY);
+    ctx.lineTo(footX + 14, footY);
+    ctx.stroke();
+
+    // torso (green shirt)
+    ctx.fillStyle = "rgba(58,245,154,0.22)";
+    ctx.strokeStyle = "rgba(58,245,154,0.7)";
+    ctx.lineWidth = 2;
+    roundRect(x - bodyW/2, y+18, bodyW, bodyH, 10);
+    ctx.fill(); ctx.stroke();
+
+    // arms
+    ctx.strokeStyle = "rgba(234,240,255,0.75)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(x - 14, y+34);
+    ctx.lineTo(x - 26, y+48);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + 14, y+34);
+    ctx.lineTo(x + 26, y+46);
+    ctx.stroke();
+
+    // head
+    ctx.fillStyle = "rgba(255,224,189,0.95)";
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, headR, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+
+    // blond hair
+    ctx.fillStyle = "rgba(255,225,120,0.95)";
+    ctx.beginPath();
+    ctx.arc(x-2, y-6, headR*0.95, Math.PI*1.05, Math.PI*1.95);
+    ctx.fill();
+
+    // blue eyes
+    ctx.fillStyle = "rgba(80,170,255,0.95)";
+    ctx.beginPath();
+    ctx.arc(x-6, y-1, 2.4, 0, Math.PI*2);
+    ctx.arc(x+6, y-1, 2.4, 0, Math.PI*2);
+    ctx.fill();
+
+    // mouth
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y+7, 6, 0.15*Math.PI, 0.85*Math.PI);
+    ctx.stroke();
+
+    // label
+    ctx.font = "800 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillStyle = "rgba(234,240,255,0.82)";
+    ctx.textAlign = "center";
+    ctx.fillText("Tommy", x, y+118);
+
+    ctx.restore();
+
+    // If kick is at peak, ensure impact is visibly on target (handled by impact state),
+    // but the leg/foot now actually reaches the same spot.
+  }
+
+  function drawMrGraham(m){
+    const x = m.x, y = m.y + m.bob;
+
+    const headR = 20;
+    const bodyW = 52, bodyH = 56;
+
+    // Pain-driven leg jerk (shin point)
+    const pain = m.pain;
+    const legJerkX = -18 - pain*18;
+    const legJerkY = 92 + pain*10;
+
+    // Mug wobble angle
+    const wob = mugWobble.t > 0 ? Math.sin(time*26) * 0.35 * mugWobble.t : 0;
+
+    ctx.save();
+
+    // shadow
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.ellipse(x, y+104, 44, 12, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // legs
+    ctx.strokeStyle = "rgba(234,240,255,0.78)";
+    ctx.lineWidth = 7;
+    ctx.lineCap = "round";
+
+    // left leg (target) jerks on pain
+    ctx.beginPath();
+    ctx.moveTo(x-10, y+62);
+    ctx.lineTo(x + legJerkX, y + legJerkY);
+    ctx.stroke();
+
+    // right leg
+    ctx.beginPath();
+    ctx.moveTo(x+10, y+62);
+    ctx.lineTo(x+14, y+94);
+    ctx.stroke();
+
+    // shoes
+    ctx.lineWidth = 9;
+    ctx.strokeStyle = "rgba(122,167,255,0.55)";
+    ctx.beginPath();
+    ctx.moveTo(x + legJerkX - 6, y + legJerkY);
+    ctx.lineTo(x + legJerkX + 10, y + legJerkY);
+    ctx.stroke();
+
+    // jacket (army green)
+    ctx.fillStyle = "rgba(120,160,110,0.22)";
+    ctx.strokeStyle = "rgba(120,160,110,0.6)";
+    ctx.lineWidth = 2;
+    roundRect(x - bodyW/2, y+20, bodyW, bodyH, 12);
+    ctx.fill(); ctx.stroke();
+
+    // black shirt
+    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    roundRect(x - (bodyW*0.56)/2, y+28, bodyW*0.56, bodyH-12, 10);
+    ctx.fill();
+
+    // arms (right arm holds mug)
+    ctx.strokeStyle = "rgba(234,240,255,0.72)";
+    ctx.lineWidth = 6;
+
+    // left arm (reacts a bit on pain)
+    ctx.beginPath();
+    ctx.moveTo(x - 20, y+40);
+    ctx.lineTo(x - 34 - pain*10, y+58 - pain*6);
+    ctx.stroke();
+
+    // right arm (mug hand)
+    const handX = x + 34;
+    const handY = y + 56 - pain*4;
+    ctx.beginPath();
+    ctx.moveTo(x + 20, y+40);
+    ctx.lineTo(handX, handY);
+    ctx.stroke();
+
+    // draw orange mug at hand (wobbles on pain)
+    drawMug(handX, handY, wob);
+
+    // head
+    ctx.fillStyle = "rgba(255,224,189,0.95)";
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, headR, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+
+    // brown hair
+    ctx.fillStyle = "rgba(110,70,40,0.95)";
+    ctx.beginPath();
+    ctx.arc(x, y-8, headR*1.05, Math.PI*1.05, Math.PI*1.95);
+    ctx.fill();
+
+    // face changes when in pain
+    if(pain > 0.02){
+      // "pain eyes" squint X shapes
+      ctx.strokeStyle = "rgba(20,30,50,0.9)";
+      ctx.lineWidth = 2.4;
+
+      // left eye X
+      ctx.beginPath();
+      ctx.moveTo(x-12, y-6); ctx.lineTo(x-4, y+2);
+      ctx.moveTo(x-4, y-6);  ctx.lineTo(x-12, y+2);
+      ctx.stroke();
+
+      // right eye X
+      ctx.beginPath();
+      ctx.moveTo(x+4, y-6);  ctx.lineTo(x+12, y+2);
+      ctx.moveTo(x+12, y-6); ctx.lineTo(x+4, y+2);
+      ctx.stroke();
+
+      // mouth grimace
+      ctx.strokeStyle = "rgba(0,0,0,0.55)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x-10, y+10);
+      ctx.lineTo(x+10, y+6);
+      ctx.stroke();
+    } else {
+      // normal eyes
+      ctx.fillStyle = "rgba(20,30,50,0.85)";
+      ctx.beginPath();
+      ctx.arc(x-7, y-1, 2.2, 0, Math.PI*2);
+      ctx.arc(x+7, y-1, 2.2, 0, Math.PI*2);
+      ctx.fill();
+
+      // neutral mouth
+      ctx.strokeStyle = "rgba(0,0,0,0.38)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x-7, y+7);
+      ctx.lineTo(x+7, y+7);
+      ctx.stroke();
+    }
+
+    // goatee
+    ctx.fillStyle = "rgba(80,50,35,0.9)";
+    ctx.beginPath();
+    ctx.moveTo(x-6, y+10);
+    ctx.lineTo(x+6, y+10);
+    ctx.lineTo(x, y+18);
+    ctx.closePath();
+    ctx.fill();
+
+    // label
+    ctx.font = "800 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillStyle = "rgba(234,240,255,0.82)";
+    ctx.textAlign = "center";
+    ctx.fillText("Mr. Graham", x, y+126);
+
+    ctx.restore();
+  }
+
+  function drawMug(x, y, angle){
+    // anchor at "hand" point
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+
+    // mug body (orange)
+    ctx.fillStyle = "rgba(255,140,40,0.92)";
+    ctx.strokeStyle = "rgba(255,200,140,0.55)";
+    ctx.lineWidth = 2;
+
+    const w = 18, h = 18;
+    roundRect(-w/2, -h/2, w, h, 4);
+    ctx.fill(); ctx.stroke();
+
+    // top lip
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-w/2 + 2, -h/2 + 3);
+    ctx.lineTo(w/2 - 2, -h/2 + 3);
+    ctx.stroke();
+
+    // handle
+    ctx.strokeStyle = "rgba(255,200,140,0.75)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(w/2 + 4, 0, 6, -Math.PI/2, Math.PI/2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawCenterText(big, small){
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(234,240,255,0.95)";
+    ctx.font = "900 44px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillText(big, W/2, H/2 - 18);
+    ctx.globalAlpha = 0.85;
+    ctx.font = "600 16px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillStyle = "rgba(234,240,255,0.82)";
+    ctx.fillText(small, W/2, H/2 + 20);
+    ctx.restore();
+  }
+
+  function draw(){
+    drawBackground();
+
+    // notes
+    for(const n of notes) drawNote(n);
+
+    // flash overlay on lanes
+    drawFlash();
+
+    // characters & impact (draw on top so the kick/impact are obvious)
+    drawCharacters(0);
+    drawImpact();
+
+    if(!running && !gameOver){
+      drawCenterText("Press Start", "Then hit keys at the line");
+    }
+    if(gameOver){
+      drawCenterText("GAME OVER", "Press Restart to try again");
+    }
+  }
+
+  function loop(ts){
+    if(!running) return;
+    if(!lastTs) lastTs = ts;
+    const dt = clamp((ts - lastTs) / 1000, 0, 0.05);
+    lastTs = ts;
+
+    update(dt);
+    draw();
+
+    if(running) requestAnimationFrame(loop);
+  }
+
+  // Input
+  window.addEventListener("keydown", (e) => {
+    const k = (e.key || "").toUpperCase();
+    if(KEYS.includes(k)){
+      e.preventDefault();
+      tryHit(k);
+    }
+  });
+
+  startBtn.addEventListener("click", start);
+  restartBtn.addEventListener("click", () => { reset(); start(); });
+
+  canvas.tabIndex = 0;
+  canvas.addEventListener("mousedown", () => canvas.focus());
+
+  reset();
+})();
+</script>
+</body>
+</html>
